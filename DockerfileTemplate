@@ -1,0 +1,24 @@
+FROM openjdk:8u181-jdk-alpine3.8
+
+RUN apk -U add bash haveged supervisor git curl
+
+RUN git clone https://github.com/n-y-z-o/nyzoVerifier.git
+
+WORKDIR /nyzoVerifier
+RUN git fetch origin pull/25/head:NCFP10
+RUN git checkout NCFP10
+RUN ./gradlew build
+RUN mkdir -p /var/lib/nyzo/production
+RUN cp trusted_entry_points /var/lib/nyzo/production/trusted_entry_points
+
+RUN bash -c 'echo "___TMP0___" > /var/lib/nyzo/production/nickname'
+RUN bash -c 'echo "___TMP1___" > /var/lib/nyzo/production/verifier_private_seed'
+
+RUN mkdir -p /var/log/supervisor
+COPY supervisord.conf /etc/supervisor/supervisord.conf
+RUN mkdir -p /etc/supervisor/conf.d
+RUN chmod +x nyzoVerifier.sh 
+RUN bash ./nyzoVerifier.sh 
+RUN cp nyzoVerifier.conf /etc/supervisor/conf.d/
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]

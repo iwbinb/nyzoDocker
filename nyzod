@@ -1,0 +1,138 @@
+#!/bin/bash
+
+function print_help {
+  echo "Utils for nyzo docker:"
+  echo "Usage: nyzod [COMMAND]"
+  echo "-----------------"
+  echo "Command list:"
+  echo -e "\tattach: attach into nyzo-verifier instance with bash (advanced user only)"
+  echo -e "\tcheck: check status of nyzo-verifier instance or other verifier with given IP"
+  echo -e "\t\t usage: nyzod check [IP] (if [IP] is empty, it will check localhost)"
+  echo -e "\tgetkey: get the private key of your verifier"
+  echo -e "\tgetnick: get the nickname of your verifier"
+  echo -e "\tgetresource: get the amount of resource (cpu, ram) for nyzo verifier"
+  echo -e "\tstart: start nyzo-verifier instance"
+  echo -e "\tstop: stop nyzo-verifier instance"
+  echo -e "\tsetram: set the amount of ram for nyzo verifier"
+  echo -e "\t\t usage: nyzod setram [AMOUNT_IN_MEGABYTE]. ex: nyzod setram 512mb"
+  echo -e "\tsetcpu: set the amount of cpu cores for nyzo verifier"
+  echo -e "\t\t usage: nyzod setcpu [N_CORE] (can be floating point). ex: nyzod setcpu 1.5 (1.5 cores)"
+  echo -e "\trestart: restart nyzo instance"
+  echo -e "\tlog: see log file"
+  echo -e "\t [INSTALLATION]"
+  echo -e "\tdestroy: delete nyzo-verifier instance for another new fresh installation"
+  echo -e "\tfreshinstall: will run and install everything the verifier needs"
+  echo -e "\t\t usage: nyzod freshinstall [NICKNAME] [PRIVATE_KEY]"
+  echo -e "\t\t (if [NICKNAME] [PRIVATE_KEY] are not set, nickname will be your host name, private key is a random one)"
+  echo -e "\t\t [LIMIT_AMOUNT_OF_RAM_IN_BYTES] & [LIMIT_AMOUNT_CPU_CORE] can be set by running nyzod setram or nyzod setcpu"
+  echo -e "\t\t by default LIMIT_AMOUNT_OF_RAM_IN_BYTES=512mb and LIMIT_AMOUNT_CPU_CORE=1"
+  echo -e "\thelp: show this message"
+}
+
+function set_ram {
+    echo $1 > nmem
+}
+
+function set_cpu {
+    echo $1 > ncore
+}
+
+function fresh_install {
+    nickname=""
+    pk=""
+    if [ -z "$1" ]
+    then
+        nickname=$HOSTNAME
+    else
+        nickname=$1
+    fi
+    echo -e "Your verifier nickname is: $nickname"
+    if [ -z "$2" ]
+    then
+        echo -e "private key is not set, the verifier will generate a random one"
+    else
+        pk=$2
+    fi
+    echo -e "Your verifier private key is: $pk"
+    cd $NYZOD_PATH;
+    cp DockerfileTemplate Dockerfile
+    sed -i "s/___TMP0___/$nickname/g" Dockerfile
+    sed -i "s/___TMP1___/$pk/g" Dockerfile
+
+    set_ram 512mb;
+    set_cpu 1;
+    echo -e "Building docker instance"
+    bash ./utils/build.sh;
+    rm Dockerfile;    
+    echo -e "Starting"
+    bash ./utils/start.sh;
+    echo -e "Your verifier has been started. Please wait a few minutes then run nyzod check 127.0.0.1"
+    echo -e "to check your verifier status"
+}
+
+if [ $# -eq 0 ]
+then
+    print_help
+else
+    cd $NYZOD_PATH;
+    case $1 in
+        "attach")
+        bash ./utils/attach.sh;
+        ;;
+
+        "check")
+        bash ./utils/checkStatus.sh $2;
+        ;;
+
+        "getkey")
+        bash ./utils/getkey.sh;
+        ;;
+
+        "getnick")
+        bash ./utils/getnick.sh;
+        ;;
+        "getresource")
+        bash ./utils/getresource.sh;
+        ;;
+        "log")
+        bash ./utils/log.sh;
+        ;;
+        "restart")
+        bash ./utils/stop.sh;
+        sleep 1;
+        bash ./utils/start.sh;
+        ;;
+
+        "start")
+        bash ./utils/start.sh;
+        ;;
+
+        "stop")
+        bash ./utils/stop.sh;
+        ;;
+
+        "setram")
+        set_ram $2;
+        bash ./utils/reloadcfg.sh;
+        ;;
+
+        "setcpu")
+        set_cpu $2;
+        bash ./utils/reloadcfg.sh;
+        ;;
+
+        "destroy")
+        echo "Current key is:"
+        bash ./utils/getkey.sh;
+        bash ./utils/stop.sh;
+        bash ./utils/destroy.sh;
+        ;;
+
+        "freshinstall")
+        fresh_install $2 $3;
+        ;;
+    *)
+        print_help
+        ;;        
+    esac
+fi
