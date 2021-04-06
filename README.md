@@ -3,7 +3,8 @@
 Docker container builder and utils for Nyzo-verifier. The container uses lightweight linux alpine3.8 and minimal dependencies for nyzo verifier. You can use this for your current servers/vps that still have free resource to participate in nyzo lottery. The scripts handle almost everything for you to set up a nyzo node on linux. There are some utils for you to quickly check and manage your verifiers.
 
 The scripts are well-tested on Ubuntu 18.04 and 20.04. Feel free to make a PR to support other linux os.
-
+### Disclaimer
+By installing nyzo docker, you will expose your IP and port 9444/9446 on Nyzo Network, and you may suffer from DDoS attacks. Please consider before installing this on a server that is already doing another important job.
 ### Installation
 
 This script only supports Linux:
